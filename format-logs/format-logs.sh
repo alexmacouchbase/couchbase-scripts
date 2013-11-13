@@ -18,7 +18,7 @@ else
 fi
 
 
-metrics="max_data_size|high_wat|low_wat|mem_used|ep_couch_bucket|ep_value_size|curr_items_tot|ep_num_non_resident|version|vb_active_curr_items|active_perc_mem|replica_perc_mem"
+metrics="max_data_size|high_wat|low_wat|mem_used|ep_dbname|ep_value_size|curr_items_tot|ep_num_non_resident|version|vb_active_curr_items|active_perc_mem|replica_perc_mem"
 tmpStats="stats-`date +%s`"
 tmpResults="results-`date +%s`"
 files="`ls ${path}/*.zip`"
@@ -29,7 +29,8 @@ do
     echo "Working on file: ${file}"
     host=`basename ${file}|cut -d '.' -f1`
     statsFile="`unzip -l ${file} |grep stats.log|grep -v ns_server|awk '{print $4;}'`"
-    unzip -p ${file} ${statsFile} > ${tmpStats}
+    #clean windows files with col -b
+    unzip -p ${file} ${statsFile} | col -b > ${tmpStats}
     if [ $? -ne 0 ]
     then
         echo "Failed to unpack ${file}"
@@ -39,7 +40,7 @@ do
     do
         case "$k" in
             *"curr_items_tot"* ) curr_items_tot=`echo $v|sed 's/^ *//g'` ;;
-            *"ep_couch_bucket"* ) ep_couch_bucket=`echo $v|sed 's/^ *//g'` ;;
+            *"ep_dbname"* ) ep_dbname=`echo $v| tr '/' ' ' | tr '\\' ' ' | awk '{ print $NF }'` ;;
             *"ep_max_data_size"* ) ep_max_data_size=`echo $v|sed 's/^ *//g'` ;;
             *"ep_mem_high_wat"* ) ep_mem_high_wat=`echo $v|sed 's/^ *//g'` ;;
             *"ep_mem_low_wat"* ) ep_mem_low_wat=`echo $v|sed 's/^ *//g'` ;;
@@ -51,7 +52,7 @@ do
             *"ep_value_size"* ) ep_value_size=`echo $v|sed 's/^ *//g'` ;;
 		    *"version"* ) 
                  echo \
-                 "${ep_couch_bucket},\
+                 "${ep_dbname},\
                     ${host},\
                     ${ep_max_data_size},\
                     ${ep_mem_high_wat},\
