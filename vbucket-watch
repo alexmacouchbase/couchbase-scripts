@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ $# -ne 3 ]
+then
+	echo "Usage: ${0} <Server Node IP> <Admin user name> <Admin password> "
+	exit 1
+fi
+
+path="/opt/couchbase/bin"
+server_ip="${1}"
+user_name="${2}"
+password="${3}"
+
+# Grab Server list
+
+server_list="`(${path}/couchbase-cli server-list -c ${server_ip}:8091 -u ${user_name} -p ${password} | cut -d "@" -f2 | cut -d " " -f1 2>&1)`"
+# Server-list does not return proper exit codes so we check output with grep
+echo ${server_list} | grep -q ERROR
+if [ $? -eq 1 ]
+then
+	echo "Server IPs in cluster:"
+	echo ${server_list}| tr ' ' '\n' 
+else
+	echo "Could not get Server list from cluster node: ${server_ip}"
+	echo ${server_list}
+	exit 1
+fi
+
+for server in ${server_list}
+do
+	echo "Stats for ${server}"
+	${path}/cbstats ${server}:11210 all|egrep -i "ep_queue_size|flusher_todo|backoff|active_num:|replica_num:"
+done
